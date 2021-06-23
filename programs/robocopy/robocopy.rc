@@ -18,10 +18,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <windef.h>
+#include "resource.h"
 
-/* Translation IDs */
+#pragma makedep po
 
-/* Shared */
-#define STRING_HELLO                    100
-#define STRING_USAGE                    101
+LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
+
+STRINGTABLE
+{
+    STRING_HELLO, "HELLO FROM A SKELETON EXE\n"
+    STRING_USAGE, "ROBOCOPY STRING_USAGE placeholder\n"
+}

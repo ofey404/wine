@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef __REG_H__
-#define __REG_H__
+#ifndef __ROBOCOPY_H__
+#define __ROBOCOPY_H__
 
 #include <stdlib.h>
 #include <windows.h>
@@ -43,23 +43,5 @@ WCHAR *get_long_key(HKEY root, WCHAR *path);
 BOOL parse_registry_key(const WCHAR *key, HKEY *root, WCHAR **path);
 BOOL is_char(const WCHAR s, const WCHAR c);
 BOOL is_switch(const WCHAR *s, const WCHAR c);
-
-/* add.c */
-int reg_add(int argc, WCHAR *argvW[]);
-
-/* copy.c */
-int reg_copy(int argc, WCHAR *argvW[]);
-
-/* delete.c */
-int reg_delete(int argc, WCHAR *argvW[]);
-
-/* export.c */
-int reg_export(int argc, WCHAR *argvW[]);
-
-/* import.c */
-int reg_import(int argc, WCHAR *argvW[]);
-
-/* query.c */
-int reg_query(int argc, WCHAR *argvW[]);
 
 #endif /* __REG_H__ */
