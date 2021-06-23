@@ -21252,6 +21252,7 @@ wine_fn_config_makefile programs/progman enable_progman
 wine_fn_config_makefile programs/reg enable_reg
 wine_fn_config_makefile programs/reg/tests enable_tests
 wine_fn_config_makefile programs/robocopy enable_robocopy
+wine_fn_config_makefile programs/robocopy/tests enable_tests
 wine_fn_config_makefile programs/regasm enable_regasm
 wine_fn_config_makefile programs/regedit enable_regedit
 wine_fn_config_makefile programs/regedit/tests enable_tests

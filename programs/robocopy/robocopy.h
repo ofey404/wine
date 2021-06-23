@@ -44,4 +44,4 @@ BOOL parse_registry_key(const WCHAR *key, HKEY *root, WCHAR **path);
 BOOL is_char(const WCHAR s, const WCHAR c);
 BOOL is_switch(const WCHAR *s, const WCHAR c);
 
-#endif /* __REG_H__ */
+#endif /* __ROBOCOPY_H__ */
