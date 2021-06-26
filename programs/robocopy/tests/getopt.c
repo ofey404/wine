@@ -16,32 +16,18 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef __ROBOCOPY_H__
-#define __ROBOCOPY_H__
+#include "robocopy_test.h"
 
-#include <stdlib.h>
-#include <windows.h>
-#include "resource.h"
+// FIXME: I tried this, but configure script return such error:
+//   ../wine-git/programs/robocopy/tests/getopt.c:20: error: #include directive with relative path not allowed
+// Shouldn't import c source file, but I just want to test whether relative import works or not.
 
-#define MAX_SUBKEY_LEN   257
+// #include "../robocopy.h"
+// #include "../getopt.c"
 
-void output_writeconsole(const WCHAR *str, DWORD wlen);
-void WINAPIV output_message(unsigned int id, ...);
-void WINAPIV output_string(const WCHAR *fmt, ...);
-
-/* getopt.c */
-struct option
+START_TEST(test)
 {
-    const char *name;
-    int has_arg;
-    int *flag;
-    int val;
-};
-
-int getopt_long(int argc, WCHAR *argvW[], const struct option opts[]);
-
-#define no_argument		0
-#define colon_seperated_argument	1
-#define space_seperated_argument_list	2
-
-#endif /* __ROBOCOPY_H__ */
+    /* FIXME: want to write unit test for ../getopt.c, but how can I include it? */
+    ok(getopt_long(0, NULL, NULL), "This placeholder should be true.");
+    return;
+}

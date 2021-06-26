@@ -2,4 +2,5 @@ TESTDLL   = robocopy.exe
 IMPORTS   = advapi32
 
 C_SRCS = \
-	test.c
+	test.c \
+	getopt.c

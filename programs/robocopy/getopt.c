@@ -16,32 +16,26 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef __ROBOCOPY_H__
-#define __ROBOCOPY_H__
+#include "robocopy.h"
 
-#include <stdlib.h>
-#include <windows.h>
-#include "resource.h"
+/* Index in ARGV of the next element to be scanned.
+   This must be 1 before any call.  */
+int optind = 1;
 
-#define MAX_SUBKEY_LEN   257
+/* Single argument. */
+char *optarg;
 
-void output_writeconsole(const WCHAR *str, DWORD wlen);
-void WINAPIV output_message(unsigned int id, ...);
-void WINAPIV output_string(const WCHAR *fmt, ...);
+/* Argument list. */
+int argsnum;
+char **optargs;
 
-/* getopt.c */
-struct option
+/* getopt implementation that accepts slash as flag indicator.
+   Accepted option types:
+   - Without arguments,             eg: /x
+   - Colon and single argument,     eg: /x:10
+   - Space seperated argument list, eg: /x arg1 arg2
+*/
+int getopt_long(int argc, WCHAR *argvW[], const struct option opts[])
 {
-    const char *name;
-    int has_arg;
-    int *flag;
-    int val;
-};
-
-int getopt_long(int argc, WCHAR *argvW[], const struct option opts[]);
-
-#define no_argument		0
-#define colon_seperated_argument	1
-#define space_seperated_argument_list	2
-
-#endif /* __ROBOCOPY_H__ */
+    return 1;
+}

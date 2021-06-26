@@ -1,6 +1,5 @@
 /*
- * Copyright 2008 Andrew Riedi
- * Copyright 2016-2017, 2021 Hugh McMaster
+ * Copyright 2021 Weiwen Chen
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,6 +20,45 @@
 #include <wine/debug.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(robocopy);
+
+#define CHAR_MAX 127
+
+/* Use a non-character as a pseudo short option,
+   starting with CHAR_MAX + 1.  */
+enum
+{
+    MIRROR_DIRECTORY_TREE = CHAR_MAX + 1,
+    NO_JOB_HEADER,
+    NO_JOB_SUMMARY,
+    NO_FILE_NAME_LOGGED,
+    NO_DIRECTORY_NAME_LOGGED,
+    COPY_SUBDIRECTORY_INCLUDE_EMPTY,
+    NO_LOG_FILE_SIZE,
+    NO_LOG_FILE_CLASS,
+    NO_LOG_COPY_PROGRESS,
+    EXCLUDE_OLDER_FILE,
+    RETRY_ON_FAILED,
+    WAIT_TIME_BETWEEN_RETRIES,
+    EXCLUDE_DIRECTORY,
+    EXCLUDE_FILES
+};
+
+static struct option const long_opts[] = {
+    {"mir", no_argument, NULL, MIRROR_DIRECTORY_TREE},
+    {"njh", no_argument, NULL, NO_JOB_HEADER},
+    {"njs", no_argument, NULL, NO_JOB_SUMMARY},
+    {"nfl", no_argument, NULL, NO_FILE_NAME_LOGGED},
+    {"ndl", no_argument, NULL, NO_DIRECTORY_NAME_LOGGED},
+    {"e", no_argument, NULL, COPY_SUBDIRECTORY_INCLUDE_EMPTY},
+    {"ns", no_argument, NULL, NO_LOG_FILE_SIZE},
+    {"nc", no_argument, NULL, NO_LOG_FILE_CLASS},
+    {"np", no_argument, NULL, NO_LOG_COPY_PROGRESS},
+    {"xo", no_argument, NULL, EXCLUDE_OLDER_FILE},
+    {"r", colon_seperated_argument, NULL, RETRY_ON_FAILED},
+    {"w", colon_seperated_argument, NULL, WAIT_TIME_BETWEEN_RETRIES},
+    {"xd", space_seperated_argument_list, NULL, EXCLUDE_DIRECTORY},
+    {"xf", space_seperated_argument_list, NULL, EXCLUDE_FILES}
+};
 
 void output_writeconsole(const WCHAR *str, DWORD wlen)
 {
@@ -95,14 +133,48 @@ void WINAPIV output_string(const WCHAR *fmt, ...)
     __ms_va_end(va_args);
 }
 
+static int first_option_index(int argc, WCHAR *argvW[])
+{
+    /* TODO: Placeholder */
+    return 4;
+}
+
 int __cdecl wmain(int argc, WCHAR *argvW[])
 {
-    if (argc == 1)
+    int c;
+    int firstopt = first_option_index(argc, argvW);
+    // struct robocopy_options x;
+
+    if (argc < 3) {
+        /* TODO: Report error */
+    }
+    if (argc == 3)
     {
-        output_message(STRING_HELLO);
+        /* TODO: parse `source`, `destination` and `files` arguments */
         output_message(STRING_USAGE);
         return 1;
     }
+
+    while ((c = getopt_long(argc - firstopt, argvW + firstopt, long_opts))
+            != -1)
+    {
+        switch (c)
+        {
+            case MIRROR_DIRECTORY_TREE:
+                /* Handle /mir */
+                /* x.MIR = optarg */
+                break;
+            case RETRY_ON_FAILED:
+                /* Handle /r:[n] */
+                /* optarg */
+                break;
+            case EXCLUDE_DIRECTORY:
+                /* Handle /xd <directory>[...] */
+                /* argsnum and optargs */
+                break;
+        }
+    }
+    
 
     return 1;
 }

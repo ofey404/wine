@@ -5,6 +5,7 @@ DELAYIMPORTS = user32
 EXTRADLLFLAGS = -mconsole -municode -mno-cygwin
 
 C_SRCS = \
-	robocopy.c
+	robocopy.c \
+	getopt.c
 
 RC_SRCS = robocopy.rc

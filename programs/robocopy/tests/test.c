@@ -20,7 +20,6 @@
 
 START_TEST(test)
 {
-    win_skip("Current test is a placeholder; "
-             "skipping\n");
+    ok(1, "This should be true.");
     return;
 }
