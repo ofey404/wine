@@ -72,6 +72,35 @@ static gdos_option const opts[] = {
 };
 
 int robocopy_init_default_options(robocopy_options *opt) {
+    opt->source = NULL;
+    opt->destination = NULL;
+    opt->files = NULL;
+
+    /* copy options */
+    opt->copy_subdir = not_copy_subdir;
+    opt->purge_not_in_source = FALSE;
+
+    /* file selection options */
+    opt->exclude_file_patterns = NULL;
+    opt->num_file_patterns = 0;
+    opt->exclude_directory_patterns = NULL;
+    opt->num_file_patterns = 0;
+    opt->exclude_older_file = FALSE;
+
+    /* retry options */
+    opt->num_retries_on_failed_copies = 1000000;
+    opt->wait_second_between_retries = 30;
+
+    /* logging options */
+    opt->not_log_file_size = FALSE; 
+    opt->not_log_file_class = FALSE; 
+    opt->not_display_progress = FALSE; 
+    opt->not_log_file_names = FALSE; 
+    opt->not_log_directory_names = FALSE; 
+    opt->no_job_header = FALSE; 
+    opt->not_job_summary = FALSE; 
+
+    /* job options */
     return INTERNAL_SUCCESS;
 }
 

@@ -67,6 +67,7 @@ typedef enum {
 } copy_subdirectory_type;
 
 typedef struct {
+    /* point to argv array */
     const WCHAR *source;
     const WCHAR *destination;
     const WCHAR **files;
