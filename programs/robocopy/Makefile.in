@@ -6,6 +6,7 @@ EXTRADLLFLAGS = -mconsole -municode -mno-cygwin
 
 C_SRCS = \
 	robocopy.c \
-	getopt.c
+	output.c \
+	getopt_dos.c
 
 RC_SRCS = robocopy.rc
