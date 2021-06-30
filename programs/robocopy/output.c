@@ -19,6 +19,7 @@
 #include "robocopy.h"
 #include <wine/debug.h>
 
+WINE_DEFAULT_DEBUG_CHANNEL(robocopy);
 
 void output_writeconsole(const WCHAR *str, DWORD wlen)
 {

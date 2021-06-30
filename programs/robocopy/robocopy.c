@@ -19,132 +19,304 @@
 #include "robocopy.h"
 #include <wine/debug.h>
 
-WINE_DEFAULT_DEBUG_CHANNEL(robocopy);
+#define DEBUG_DEV_WEIWEN
 
 enum opt_indicator
 {
-    COPY_SUBDIRECTORIES_EXCLUDE_EMPTY,
-    COPY_SUBDIRECTORIES_INCLUDE_EMPTY,
-    PURGE_NOT_IN_SOURCE,
-    MIRROR_DIRECTORY_TREE,
-    EXCLUDE_FILES,
-    EXCLUDE_DIRECTORY,
-    EXCLUDE_OLDER_FILE,
-    RETRY_ON_FAILED,
-    WAIT_TIME_BETWEEN_RETRIES,
-    NO_LOG_FILE_SIZE,
-    NO_LOG_FILE_CLASS,
-    NO_LOG_COPY_PROGRESS,
-    NO_FILE_NAME_LOGGED,
-    NO_DIRECTORY_NAME_LOGGED,
-    NO_JOB_HEADER,
-    NO_JOB_SUMMARY,
+    I_COPY_SUBDIRECTORIES_EXCLUDE_EMPTY,
+    I_COPY_SUBDIRECTORIES_INCLUDE_EMPTY,
+    I_PURGE_NOT_IN_SOURCE,
+    I_MIRROR_DIRECTORY_TREE,
+    I_EXCLUDE_FILES,
+    I_EXCLUDE_DIRECTORY,
+    I_EXCLUDE_OLDER_FILE,
+    I_RETRY_NUM_ON_FAILED,
+    I_WAIT_TIME_BETWEEN_RETRIES,
+    I_NO_LOG_FILE_SIZE,
+    I_NO_LOG_FILE_CLASS,
+    I_NO_LOG_COPY_PROGRESS,
+    I_NO_FILE_NAME_LOGGED,
+    I_NO_DIRECTORY_NAME_LOGGED,
+    I_NO_JOB_HEADER,
+    I_NO_JOB_SUMMARY,
 };
 
 static gdos_option const opts[] = {
     /* copy options */
-    {"s", NO_ARGUMENT, COPY_SUBDIRECTORIES_EXCLUDE_EMPTY},
-    {"e", NO_ARGUMENT, COPY_SUBDIRECTORIES_INCLUDE_EMPTY},
+    {L"s", NO_ARGUMENT, I_COPY_SUBDIRECTORIES_EXCLUDE_EMPTY},
+    {L"e", NO_ARGUMENT, I_COPY_SUBDIRECTORIES_INCLUDE_EMPTY},
 
     /* FIXME: What means "allows the destination directory
               security settings to not be overwritten." in doc? */
-    {"purge", NO_ARGUMENT, PURGE_NOT_IN_SOURCE},
-    {"mir", NO_ARGUMENT, MIRROR_DIRECTORY_TREE},
+    {L"purge", NO_ARGUMENT, I_PURGE_NOT_IN_SOURCE},
+    {L"mir", NO_ARGUMENT, I_MIRROR_DIRECTORY_TREE},
 
     /* file selection options */
-    {"xf", SPACE_SEPERATED_ARGUMENT_LIST, EXCLUDE_FILES},
-    {"xd", SPACE_SEPERATED_ARGUMENT_LIST, EXCLUDE_DIRECTORY},
-    {"xo", NO_ARGUMENT, EXCLUDE_OLDER_FILE},
+    {L"xf", SPACE_SEPERATED_ARGUMENT_LIST, I_EXCLUDE_FILES},
+    {L"xd", SPACE_SEPERATED_ARGUMENT_LIST, I_EXCLUDE_DIRECTORY},
+    {L"xo", NO_ARGUMENT, I_EXCLUDE_OLDER_FILE},
 
     /* retry options */
-    {"r", COLON_SEPERATED_ARGUMENT, RETRY_ON_FAILED},
-    {"w", COLON_SEPERATED_ARGUMENT, WAIT_TIME_BETWEEN_RETRIES},
+    {L"r", COLON_SEPERATED_ARGUMENT, I_RETRY_NUM_ON_FAILED},
+    {L"w", COLON_SEPERATED_ARGUMENT, I_WAIT_TIME_BETWEEN_RETRIES},
 
     /* logging options */
-    {"ns", NO_ARGUMENT, NO_LOG_FILE_SIZE},
-    {"nc", NO_ARGUMENT, NO_LOG_FILE_CLASS},
-    {"np", NO_ARGUMENT, NO_LOG_COPY_PROGRESS},
-    {"nfl", NO_ARGUMENT, NO_FILE_NAME_LOGGED},
-    {"ndl", NO_ARGUMENT, NO_DIRECTORY_NAME_LOGGED},
-    {"njh", NO_ARGUMENT, NO_JOB_HEADER},
-    {"njs", NO_ARGUMENT, NO_JOB_SUMMARY},
+    {L"ns", NO_ARGUMENT, I_NO_LOG_FILE_SIZE},
+    {L"nc", NO_ARGUMENT, I_NO_LOG_FILE_CLASS},
+    {L"np", NO_ARGUMENT, I_NO_LOG_COPY_PROGRESS},
+    {L"nfl", NO_ARGUMENT, I_NO_FILE_NAME_LOGGED},
+    {L"ndl", NO_ARGUMENT, I_NO_DIRECTORY_NAME_LOGGED},
+    {L"njh", NO_ARGUMENT, I_NO_JOB_HEADER},
+    {L"njs", NO_ARGUMENT, I_NO_JOB_SUMMARY},
     /* job options */
 };
 
-int robocopy_init_default_options(robocopy_options *opt) {
-    opt->source = NULL;
-    opt->destination = NULL;
-    opt->files = NULL;
+#ifdef DEBUG_DEV_WEIWEN
+
+void print_bool(const BOOL b)
+{
+    printf(b ? "TRUE\n": "FALSE\n");
+    return;
+}
+
+void print_robocopy_context(const robocopy_context *x)
+{
+    printf("source: %s\n", x->source);
+    printf("destination: %s\n", x->destination);
+    printf("files:\n");
+    for (int i = 0; i < x->num_files; i++)
+        printf("    %s\n", x->files[i]);
+    
+    switch (x->copy_subdir) {
+        case COPY_SUBDIR_TYPE_NOT:
+            printf("copy sub dir: not\n");
+            break;
+        case COPY_SUBDIR_TYPE_EXCLUDE_EMPTY:
+            printf("copy sub dir: /s, exclude empty\n");
+            break;
+        case COPY_SUBDIR_TYPE_INCLUDE_EMPTY:
+            printf("copy sub dir: /e, include empty\n");
+            break;
+    }
+    printf("purge_not_in_source: ");
+    print_bool(x->purge_not_in_source);
+
+    printf("exclude_file_patterns:\n");
+    for (int i = 0; i< x->num_exclude_file_patterns; i++) {
+        printf("    %s\n", x->exclude_file_patterns[i]);
+    }
+
+    printf("exclude_directory_patterns:\n");
+    for (int i = 0; i< x->num_exclude_directory_patterns; i++) {
+        printf("    %s\n", x->exclude_directory_patterns[i]);
+    }
+
+    printf("exclude_older_file: ");
+    print_bool(x->exclude_older_file);
+
+    printf("num_retries_on_failed_copies: %d\n", x->num_retries_on_failed_copies);
+    printf("wait_second_between_retries: %d\n", x->wait_second_between_retries);
+
+    printf("not_log_file_size: ");
+    print_bool(x->not_log_file_size);
+
+    printf("not_log_file_class: ");
+    print_bool(x->not_log_file_class);
+
+    printf("not_display_progress: ");
+    print_bool(x->not_display_progress);
+
+    printf("not_log_file_names: ");
+    print_bool(x->not_log_file_names);
+
+    printf("not_log_directory_names: ");
+    print_bool(x->not_log_directory_names);
+
+    printf("no_job_header: ");
+    print_bool(x->no_job_header);
+
+    printf("not_job_summary: ");
+    print_bool(x->not_job_summary);
+    return;
+}
+
+#endif /* DEBUG_DEV_WEIWEN */
+
+int robocopy_init_default_options(robocopy_context *x)
+{
+    x->source = NULL;
+    x->destination = NULL;
+    x->files = NULL;
+    x->num_files = 0;
 
     /* copy options */
-    opt->copy_subdir = not_copy_subdir;
-    opt->purge_not_in_source = FALSE;
+    x->copy_subdir = COPY_SUBDIR_TYPE_NOT;
+    x->purge_not_in_source = FALSE;
 
     /* file selection options */
-    opt->exclude_file_patterns = NULL;
-    opt->num_file_patterns = 0;
-    opt->exclude_directory_patterns = NULL;
-    opt->num_file_patterns = 0;
-    opt->exclude_older_file = FALSE;
+    x->exclude_file_patterns = NULL;
+    x->num_exclude_file_patterns = 0;
+    x->exclude_directory_patterns = NULL;
+    x->num_exclude_directory_patterns = 0;
+    x->exclude_older_file = FALSE;
 
     /* retry options */
-    opt->num_retries_on_failed_copies = 1000000;
-    opt->wait_second_between_retries = 30;
+    x->num_retries_on_failed_copies = 1000000;
+    x->wait_second_between_retries = 30;
 
     /* logging options */
-    opt->not_log_file_size = FALSE; 
-    opt->not_log_file_class = FALSE; 
-    opt->not_display_progress = FALSE; 
-    opt->not_log_file_names = FALSE; 
-    opt->not_log_directory_names = FALSE; 
-    opt->no_job_header = FALSE; 
-    opt->not_job_summary = FALSE; 
+    x->not_log_file_size = FALSE;
+    x->not_log_file_class = FALSE;
+    x->not_display_progress = FALSE;
+    x->not_log_file_names = FALSE;
+    x->not_log_directory_names = FALSE;
+    x->no_job_header = FALSE;
+    x->not_job_summary = FALSE;
 
     /* job options */
     return INTERNAL_SUCCESS;
 }
 
-int robocopy_parse_options(robocopy_options *opt, int argc, WCHAR *argvW[]) {
+/* the state of ctx: first flag is parsed */
+int robocopy_handle_flags(robocopy_context *x, gdos_context *ctx)
+{
+    int opt = ctx->current_opt;
+    do
+    {
+        switch (opt)
+        {
+        case I_COPY_SUBDIRECTORIES_EXCLUDE_EMPTY:
+            x->copy_subdir = COPY_SUBDIR_TYPE_EXCLUDE_EMPTY;
+            break;
+        case I_COPY_SUBDIRECTORIES_INCLUDE_EMPTY:
+            x->copy_subdir = COPY_SUBDIR_TYPE_INCLUDE_EMPTY;
+            break;
+        case I_PURGE_NOT_IN_SOURCE:
+            x->purge_not_in_source = TRUE;
+            break;
+        case I_MIRROR_DIRECTORY_TREE:
+            x->purge_not_in_source = TRUE;
+            x->copy_subdir = COPY_SUBDIR_TYPE_INCLUDE_EMPTY;
+            break;
+        case I_EXCLUDE_FILES:
+            x->exclude_file_patterns = ctx->current_opt_arg.list.argument_list;
+            x->num_exclude_file_patterns = ctx->current_opt_arg.list.num_args;
+            break;
+        case I_EXCLUDE_DIRECTORY:
+            x->exclude_directory_patterns = ctx->current_opt_arg.list.argument_list;
+            x->num_exclude_directory_patterns = ctx->current_opt_arg.list.num_args;
+            break;
+        case I_EXCLUDE_OLDER_FILE:
+            x->exclude_older_file = TRUE;
+            break;
+        case I_RETRY_NUM_ON_FAILED:
+            /* TODO: TO INT */
+            // x->num_retries_on_failed_copies = ctx->current_opt_arg.single
+            break;
+        case I_WAIT_TIME_BETWEEN_RETRIES:
+            /* TODO: TO INT */
+            break;
+        case I_NO_LOG_FILE_SIZE:
+            x->not_log_file_size = TRUE;
+            break;
+        case I_NO_LOG_FILE_CLASS:
+            x->not_log_file_class = TRUE;
+            break;
+        case I_NO_LOG_COPY_PROGRESS:
+            x->not_display_progress = TRUE;
+            break;
+        case I_NO_FILE_NAME_LOGGED:
+            x->not_log_file_names = TRUE;
+            break;
+        case I_NO_DIRECTORY_NAME_LOGGED:
+            x->not_log_directory_names = TRUE;
+            break;
+        case I_NO_JOB_HEADER:
+            x->no_job_header = TRUE;
+            break;
+        case I_NO_JOB_SUMMARY:
+            x->not_job_summary = TRUE;
+            break;
+        case GDOS_NEXT_NO_MATCHING_OPTION:
+        case GDOS_NEXT_ARGUMENT_TYPE_MISMATCH:
+        default:
+            return INTERNAL_FAILURE;
+        }
+    } while ((opt = getopt_dos_next(ctx)) != GDOS_NEXT_ALL_OPTIONS_PROCEEDED);
+    return INTERNAL_SUCCESS;
+}
+
+int robocopy_parse_options(robocopy_context *x, int argc, const WCHAR **argvW)
+{
     gdos_context ctx;
     int opt;
 
     /* TODO: handle this properly */
     if (getopt_dos_create_context(&ctx, argc, argvW, opts) != 0)
-        return 1;
+        return INTERNAL_FAILURE;
 
     /* skip <source> <destination> and <files> */
     while ((opt = getopt_dos_next(&ctx)) == GDOS_NEXT_NOT_OPTION)
         ;
 
-    /* no flag */
-    if (opt == GDOS_OPTIONS_END)
-        /* TODO */
-        return 0;
+    if (ctx.optind < 3)
+        return INTERNAL_FAILURE;
+    x->source = argvW[1];
+    x->destination = argvW[2];
 
-    if (argc < 3)
+    /* no flag, optind == argc */
+    if (opt == GDOS_NEXT_ALL_OPTIONS_PROCEEDED)
     {
-        /* TODO: Report error */
+        assert(ctx.optind == argc);
+
+        /* if have <files>[...], else default value is ok */
+        if (ctx.optind > 3)
+        {
+            x->files = argvW + 3;
+            x->num_files = argc - 3;
+        }
+        return INTERNAL_SUCCESS;
+        /* parse error happens */
     }
-    if (argc == 3)
+    else if (opt == GDOS_NEXT_NO_MATCHING_OPTION || opt == GDOS_NEXT_ARGUMENT_TYPE_MISMATCH)
     {
-        /* TODO: parse `source`, `destination` and `files` arguments */
-        output_message(STRING_USAGE);
-        return 1;
+        return opt;
     }
 
+    /* handle flags */
+    robocopy_handle_flags(x, &ctx);
+
+    /* if have flag, optind = index of first flag + 1 */
+    x->files = argvW + 3;
+    x->num_files = ctx.optind - 4;
     return 0;
+}
+
+int do_robocopy(robocopy_context *x)
+{
+    printf("after parse context:\n");
+    print_robocopy_context(x);
+    return ROBOCOPY_EXIT_SUCCESS;
 }
 
 int __cdecl wmain(int argc, WCHAR *argvW[])
 {
-    robocopy_options x;
-    if (robocopy_init_default_options(&x) != INTERNAL_SUCCESS) {
+    robocopy_context x;
+
+    printf("default context:\n");
+    print_robocopy_context(&x);
+
+    if (robocopy_init_default_options(&x) != INTERNAL_SUCCESS)
+    {
+        printf("1\n");
         return INTERNAL_ERROR_PLACEHOLDER;
     }
 
-    if (robocopy_parse_options(&x, argc, argvW) != INTERNAL_SUCCESS) {
+    if (robocopy_parse_options(&x, argc, (const WCHAR **)argvW) != INTERNAL_SUCCESS)
+    {
+        printf("2\n");
         return INTERNAL_ERROR_PLACEHOLDER;
     }
 
-    return ROBOCOPY_EXIT_SUCCESS;
+    return do_robocopy(&x);
 }

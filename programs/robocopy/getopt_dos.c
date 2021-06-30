@@ -69,11 +69,11 @@ int getopt_dos_next(gdos_context *ctx)
 
         /* remove the leading slash */
         const WCHAR *token = current_token + 1;
-        unsigned int token_len = (unsigned int)strlen(token);
+        unsigned int token_len = (unsigned int)wcslen(token);
 
         if (token_is_option(token, opt->name, token_len) == 0)
         {
-            unsigned int name_len = (unsigned int)strlen(opt->name);
+            unsigned int name_len = (unsigned int)wcslen(opt->name);
             if (token[name_len] == '\0')
             {
                 if (!(opt->arg_type == NO_ARGUMENT || opt->arg_type == SPACE_SEPERATED_ARGUMENT_LIST))
@@ -108,6 +108,7 @@ int getopt_dos_next(gdos_context *ctx)
             }
 
             ctx->arg_type = opt->arg_type;
+            ctx->current_opt = opt->val;
             return opt->val;
         }
     }

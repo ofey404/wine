@@ -15,10 +15,13 @@
 /* getopt_dos_next() return this as identifier when the 
    WCHAR[] ctx->optind points to doesn't start with slash.
    Same with '+' in getopt(). */
-#define GDOS_NEXT_NOT_OPTION -2;
+#define GDOS_NEXT_NOT_OPTION -2
 
 /* Same with '?' in getopt() */
-#define GDOS_NEXT_NO_MATCHING_OPTION -3;
+#define GDOS_NEXT_NO_MATCHING_OPTION -3
+
+/* catch arg type mismatch as much as possible */
+#define GDOS_NEXT_ARGUMENT_TYPE_MISMATCH -4
 
 typedef enum
 {
@@ -55,6 +58,7 @@ typedef struct
     int num_opts;
     int optind;
     gdos_argtype arg_type;
+    int current_opt;
     gdos_argument current_opt_arg;
 } gdos_context;
 

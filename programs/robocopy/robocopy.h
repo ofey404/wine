@@ -19,6 +19,7 @@
 #ifndef __ROBOCOPY_H__
 #define __ROBOCOPY_H__
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
 #include "resource.h"
@@ -58,12 +59,12 @@
 
 /* return value indicator for internal functions. for clearance. */
 #define INTERNAL_SUCCESS 0
-#define INTERNAL_FAILURE -1
+#define INTERNAL_FAILURE -65534  /* UGLY: not to collapse with GDOS_NEXT_* errors */
 
 typedef enum {
-    not_copy_subdir,
-    copy_subdir_exclude_empty,
-    copy_subdir_include_empty,
+    COPY_SUBDIR_TYPE_NOT,
+    COPY_SUBDIR_TYPE_EXCLUDE_EMPTY,
+    COPY_SUBDIR_TYPE_INCLUDE_EMPTY,
 } copy_subdirectory_type;
 
 typedef struct {
@@ -71,6 +72,7 @@ typedef struct {
     const WCHAR *source;
     const WCHAR *destination;
     const WCHAR **files;
+    int num_files;
 
     /* copy options */
     /* /s, /e, /mir */
@@ -81,10 +83,10 @@ typedef struct {
     /* file selection options */
     /* /xf <filename>[...] */
     const WCHAR **exclude_file_patterns;
-    int num_file_patterns;
+    int num_exclude_file_patterns;
     /* /xd <directory>[...]*/
     const WCHAR **exclude_directory_patterns;
-    int num_directory_patterns;
+    int num_exclude_directory_patterns;
     /* /xo */
     BOOL exclude_older_file;
 
@@ -111,12 +113,12 @@ typedef struct {
     BOOL not_job_summary;
 
     /* job options */
-} robocopy_options;
+} robocopy_context;
 
 /* robocopy.c */
 
-int robocopy_init_default_options(robocopy_options *opt);
-int robocopy_parse_options(robocopy_options *opt, int argc, WCHAR *argvW[]);
+int robocopy_init_default_options(robocopy_context *x);
+int robocopy_parse_options(robocopy_context *x, int argc, const WCHAR **argvW);
 
 /* output.c */
 
