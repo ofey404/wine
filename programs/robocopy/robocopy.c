@@ -41,6 +41,8 @@ enum opt_indicator
     I_NO_JOB_SUMMARY,
 };
 
+const static WCHAR *file_patterns_default_value[] = {L"*.*"};
+
 static gdos_option const opts[] = {
     /* copy options */
     {L"s", NO_ARGUMENT, I_COPY_SUBDIRECTORIES_EXCLUDE_EMPTY},
@@ -75,40 +77,43 @@ static gdos_option const opts[] = {
 
 void print_bool(const BOOL b)
 {
-    printf(b ? "TRUE\n": "FALSE\n");
+    printf(b ? "TRUE\n" : "FALSE\n");
     return;
 }
 
 void print_robocopy_context(const robocopy_context *x)
 {
-    printf("source: %s\n", x->source);
-    printf("destination: %s\n", x->destination);
-    printf("files:\n");
+    printf("source: %S\n", x->source);
+    printf("destination: %S\n", x->destination);
+    printf("files num %d:\n", x->num_files);
     for (int i = 0; i < x->num_files; i++)
-        printf("    %s\n", x->files[i]);
-    
-    switch (x->copy_subdir) {
-        case COPY_SUBDIR_TYPE_NOT:
-            printf("copy sub dir: not\n");
-            break;
-        case COPY_SUBDIR_TYPE_EXCLUDE_EMPTY:
-            printf("copy sub dir: /s, exclude empty\n");
-            break;
-        case COPY_SUBDIR_TYPE_INCLUDE_EMPTY:
-            printf("copy sub dir: /e, include empty\n");
-            break;
+        printf("    %S\n", x->files[i]);
+
+    switch (x->copy_subdir)
+    {
+    case COPY_SUBDIR_TYPE_NOT:
+        printf("copy sub dir: not\n");
+        break;
+    case COPY_SUBDIR_TYPE_EXCLUDE_EMPTY:
+        printf("copy sub dir: /s, exclude empty\n");
+        break;
+    case COPY_SUBDIR_TYPE_INCLUDE_EMPTY:
+        printf("copy sub dir: /e, include empty\n");
+        break;
     }
     printf("purge_not_in_source: ");
     print_bool(x->purge_not_in_source);
 
-    printf("exclude_file_patterns:\n");
-    for (int i = 0; i< x->num_exclude_file_patterns; i++) {
-        printf("    %s\n", x->exclude_file_patterns[i]);
+    printf("exclude_file_patterns num %d:\n", x->num_exclude_file_patterns);
+    for (int i = 0; i < x->num_exclude_file_patterns; i++)
+    {
+        printf("    %S\n", x->exclude_file_patterns[i]);
     }
 
-    printf("exclude_directory_patterns:\n");
-    for (int i = 0; i< x->num_exclude_directory_patterns; i++) {
-        printf("    %s\n", x->exclude_directory_patterns[i]);
+    printf("exclude_directory_patterns num %d:\n", x->num_exclude_directory_patterns);
+    for (int i = 0; i < x->num_exclude_directory_patterns; i++)
+    {
+        printf("    %S\n", x->exclude_directory_patterns[i]);
     }
 
     printf("exclude_older_file: ");
@@ -146,7 +151,7 @@ int robocopy_init_default_options(robocopy_context *x)
 {
     x->source = NULL;
     x->destination = NULL;
-    x->files = NULL;
+    x->files = file_patterns_default_value;
     x->num_files = 0;
 
     /* copy options */
@@ -181,7 +186,7 @@ int robocopy_init_default_options(robocopy_context *x)
 int robocopy_handle_flags(robocopy_context *x, gdos_context *ctx)
 {
     int opt = ctx->current_opt;
-    do
+    while ((opt = getopt_dos_next(ctx)) != GDOS_NEXT_ALL_OPTIONS_PROCEEDED)
     {
         switch (opt)
         {
@@ -210,11 +215,12 @@ int robocopy_handle_flags(robocopy_context *x, gdos_context *ctx)
             x->exclude_older_file = TRUE;
             break;
         case I_RETRY_NUM_ON_FAILED:
-            /* TODO: TO INT */
-            // x->num_retries_on_failed_copies = ctx->current_opt_arg.single
+            /* TODO: check if not pass legal string */
+            x->num_retries_on_failed_copies = _wtoi(ctx->current_opt_arg.single);
             break;
         case I_WAIT_TIME_BETWEEN_RETRIES:
-            /* TODO: TO INT */
+            /* TODO: check if not pass legal string */
+            x->wait_second_between_retries = _wtoi(ctx->current_opt_arg.single);
             break;
         case I_NO_LOG_FILE_SIZE:
             x->not_log_file_size = TRUE;
@@ -242,54 +248,47 @@ int robocopy_handle_flags(robocopy_context *x, gdos_context *ctx)
         default:
             return INTERNAL_FAILURE;
         }
-    } while ((opt = getopt_dos_next(ctx)) != GDOS_NEXT_ALL_OPTIONS_PROCEEDED);
+    }
     return INTERNAL_SUCCESS;
 }
 
 int robocopy_parse_options(robocopy_context *x, int argc, const WCHAR **argvW)
 {
     gdos_context ctx;
-    int opt;
+    BOOL has_flag;
+    int first_flag_ind;
+    int file_list_end;
 
     /* TODO: handle this properly */
     if (getopt_dos_create_context(&ctx, argc, argvW, opts) != 0)
         return INTERNAL_FAILURE;
 
-    /* skip <source> <destination> and <files> */
-    while ((opt = getopt_dos_next(&ctx)) == GDOS_NEXT_NOT_OPTION)
-        ;
+    first_flag_ind = 1;
+    for (; first_flag_ind < argc; first_flag_ind++)
+    {
+        if (argvW[first_flag_ind][0] == '/')
+        {
+            has_flag = TRUE;
+            break;
+        }
+    }
 
-    if (ctx.optind < 3)
+    file_list_end = has_flag ? first_flag_ind : argc;
+
+    if (file_list_end < 3)
         return INTERNAL_FAILURE;
     x->source = argvW[1];
     x->destination = argvW[2];
+    x->num_files = file_list_end - 3;
 
-    /* no flag, optind == argc */
-    if (opt == GDOS_NEXT_ALL_OPTIONS_PROCEEDED)
-    {
-        assert(ctx.optind == argc);
+    if (file_list_end >= 4)
+        x->files = argvW + 3;
 
-        /* if have <files>[...], else default value is ok */
-        if (ctx.optind > 3)
-        {
-            x->files = argvW + 3;
-            x->num_files = argc - 3;
-        }
-        return INTERNAL_SUCCESS;
-        /* parse error happens */
+    if (has_flag) {
+        ctx.optind = first_flag_ind;
+        robocopy_handle_flags(x, &ctx);
     }
-    else if (opt == GDOS_NEXT_NO_MATCHING_OPTION || opt == GDOS_NEXT_ARGUMENT_TYPE_MISMATCH)
-    {
-        return opt;
-    }
-
-    /* handle flags */
-    robocopy_handle_flags(x, &ctx);
-
-    /* if have flag, optind = index of first flag + 1 */
-    x->files = argvW + 3;
-    x->num_files = ctx.optind - 4;
-    return 0;
+    return INTERNAL_SUCCESS;
 }
 
 int do_robocopy(robocopy_context *x)
@@ -303,18 +302,16 @@ int __cdecl wmain(int argc, WCHAR *argvW[])
 {
     robocopy_context x;
 
-    printf("default context:\n");
-    print_robocopy_context(&x);
-
     if (robocopy_init_default_options(&x) != INTERNAL_SUCCESS)
     {
-        printf("1\n");
         return INTERNAL_ERROR_PLACEHOLDER;
     }
 
+    printf("default context:\n");
+    print_robocopy_context(&x);
+
     if (robocopy_parse_options(&x, argc, (const WCHAR **)argvW) != INTERNAL_SUCCESS)
     {
-        printf("2\n");
         return INTERNAL_ERROR_PLACEHOLDER;
     }
 

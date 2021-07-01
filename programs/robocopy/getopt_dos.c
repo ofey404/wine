@@ -82,11 +82,12 @@ int getopt_dos_next(gdos_context *ctx)
                 /* deal with possible argument list */
                 if (!(ctx->optind == ctx->argc || ctx->argv[ctx->optind][0] == '/'))
                 {
+
                     ctx->current_opt_arg.list.argument_list = ctx->argv + ctx->optind;
 
                     /* count list length, move optind */
                     const int ind_current_flag = ctx->optind;
-                    while (ctx->optind <= ctx->argc)
+                    while (ctx->optind < ctx->argc)
                     {
                         if (ctx->argv[ctx->optind][0] == '/')
                             break;
