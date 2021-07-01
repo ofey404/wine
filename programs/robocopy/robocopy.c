@@ -152,7 +152,7 @@ int robocopy_init_default_options(robocopy_context *x)
     x->source = NULL;
     x->destination = NULL;
     x->files = file_patterns_default_value;
-    x->num_files = 0;
+    x->num_files = 1;
 
     /* copy options */
     x->copy_subdir = COPY_SUBDIR_TYPE_NOT;
@@ -279,9 +279,10 @@ int robocopy_parse_options(robocopy_context *x, int argc, const WCHAR **argvW)
         return INTERNAL_FAILURE;
     x->source = argvW[1];
     x->destination = argvW[2];
-    x->num_files = file_list_end - 3;
 
+    /* if <file>[...] not set, leave default value untouchable */
     if (file_list_end >= 4)
+        x->num_files = file_list_end - 3;
         x->files = argvW + 3;
 
     if (has_flag) {
